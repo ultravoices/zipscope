@@ -1,0 +1,886 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "https://lmstudio.ai",
+  "elements": [
+    {
+      "id": "container-browser",
+      "type": "rectangle",
+      "x": 0,
+      "y": 0,
+      "width": 460,
+      "height": 560,
+      "strokeColor": "#6741d9",
+      "backgroundColor": "transparent",
+      "roundness": {
+        "type": 3
+      },
+      "roughness": 0,
+      "seed": 7986813,
+      "strokeStyle": "solid",
+      "boundElements": []
+    },
+    {
+      "id": "container-api",
+      "type": "rectangle",
+      "x": 720,
+      "y": 0,
+      "width": 460,
+      "height": 560,
+      "strokeColor": "#1971c2",
+      "backgroundColor": "transparent",
+      "roundness": {
+        "type": 3
+      },
+      "roughness": 0,
+      "seed": 3148521,
+      "strokeStyle": "solid",
+      "boundElements": []
+    },
+    {
+      "id": "title-browser",
+      "type": "text",
+      "x": 0,
+      "y": 16,
+      "width": 319.2,
+      "height": 37.8,
+      "text": "Browser \u2014 React SPA",
+      "originalText": "Browser \u2014 React SPA",
+      "fontSize": 28,
+      "fontFamily": 6,
+      "lineHeight": 1.35,
+      "textAlign": "center",
+      "seed": 9803150
+    },
+    {
+      "id": "title-api",
+      "type": "text",
+      "x": 720,
+      "y": 16,
+      "width": 218.4,
+      "height": 37.8,
+      "text": "API \u2014 FastAPI",
+      "originalText": "API \u2014 FastAPI",
+      "fontSize": 28,
+      "fontFamily": 6,
+      "lineHeight": 1.35,
+      "textAlign": "center",
+      "seed": 5196102
+    },
+    {
+      "id": "box-geo",
+      "type": "rectangle",
+      "x": 80,
+      "y": 120,
+      "width": 300,
+      "height": 72,
+      "strokeColor": "#6741d9",
+      "backgroundColor": "#d0bfff",
+      "roundness": {
+        "type": 3
+      },
+      "roughness": 0,
+      "seed": 3458827,
+      "strokeStyle": "solid",
+      "boundElements": [
+        {
+          "type": "text",
+          "id": "lbl-geo"
+        },
+        {
+          "type": "arrow",
+          "id": "a-geo"
+        }
+      ]
+    },
+    {
+      "id": "box-mapv",
+      "type": "rectangle",
+      "x": 80,
+      "y": 220,
+      "width": 300,
+      "height": 72,
+      "strokeColor": "#6741d9",
+      "backgroundColor": "#d0bfff",
+      "roundness": {
+        "type": 3
+      },
+      "roughness": 0,
+      "seed": 6980144,
+      "strokeStyle": "solid",
+      "boundElements": [
+        {
+          "type": "text",
+          "id": "lbl-mapv"
+        },
+        {
+          "type": "arrow",
+          "id": "a-zipsmap"
+        }
+      ]
+    },
+    {
+      "id": "box-scope",
+      "type": "rectangle",
+      "x": 80,
+      "y": 320,
+      "width": 300,
+      "height": 72,
+      "strokeColor": "#6741d9",
+      "backgroundColor": "#d0bfff",
+      "roundness": {
+        "type": 3
+      },
+      "roughness": 0,
+      "seed": 4549672,
+      "strokeStyle": "solid",
+      "boundElements": [
+        {
+          "type": "text",
+          "id": "lbl-scope"
+        },
+        {
+          "type": "arrow",
+          "id": "a-scope"
+        }
+      ]
+    },
+    {
+      "id": "box-panel",
+      "type": "rectangle",
+      "x": 80,
+      "y": 420,
+      "width": 300,
+      "height": 72,
+      "strokeColor": "#6741d9",
+      "backgroundColor": "#d0bfff",
+      "roundness": {
+        "type": 3
+      },
+      "roughness": 0,
+      "seed": 9045284,
+      "strokeStyle": "solid",
+      "boundElements": [
+        {
+          "type": "text",
+          "id": "lbl-panel"
+        },
+        {
+          "type": "arrow",
+          "id": "a-panel"
+        }
+      ]
+    },
+    {
+      "id": "lbl-geo",
+      "type": "text",
+      "x": 90,
+      "y": 142.5,
+      "width": 280,
+      "height": 27.0,
+      "text": "GeolocationService",
+      "originalText": "GeolocationService",
+      "fontSize": 20,
+      "fontFamily": 6,
+      "lineHeight": 1.35,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "box-geo",
+      "seed": 4213213
+    },
+    {
+      "id": "lbl-mapv",
+      "type": "text",
+      "x": 90,
+      "y": 242.5,
+      "width": 280,
+      "height": 27.0,
+      "text": "MapView (MapLibre GL)",
+      "originalText": "MapView (MapLibre GL)",
+      "fontSize": 20,
+      "fontFamily": 6,
+      "lineHeight": 1.35,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "box-mapv",
+      "seed": 8460109
+    },
+    {
+      "id": "lbl-scope",
+      "type": "text",
+      "x": 90,
+      "y": 342.5,
+      "width": 280,
+      "height": 27.0,
+      "text": "ScopeSelector",
+      "originalText": "ScopeSelector",
+      "fontSize": 20,
+      "fontFamily": 6,
+      "lineHeight": 1.35,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "box-scope",
+      "seed": 6042026
+    },
+    {
+      "id": "lbl-panel",
+      "type": "text",
+      "x": 90,
+      "y": 442.5,
+      "width": 280,
+      "height": 27.0,
+      "text": "ZipList \u00b7 DetailPanel",
+      "originalText": "ZipList \u00b7 DetailPanel",
+      "fontSize": 20,
+      "fontFamily": 6,
+      "lineHeight": 1.35,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "box-panel",
+      "seed": 7077176
+    },
+    {
+      "id": "box-geocode",
+      "type": "rectangle",
+      "x": 800,
+      "y": 120,
+      "width": 300,
+      "height": 72,
+      "strokeColor": "#1971c2",
+      "backgroundColor": "#a5d8ff",
+      "roundness": {
+        "type": 3
+      },
+      "roughness": 0,
+      "seed": 8947117,
+      "strokeStyle": "solid",
+      "boundElements": [
+        {
+          "type": "text",
+          "id": "lbl-geocode"
+        },
+        {
+          "type": "arrow",
+          "id": "a-geo"
+        },
+        {
+          "type": "arrow",
+          "id": "a-ext"
+        }
+      ]
+    },
+    {
+      "id": "box-zips",
+      "type": "rectangle",
+      "x": 800,
+      "y": 220,
+      "width": 300,
+      "height": 72,
+      "strokeColor": "#1971c2",
+      "backgroundColor": "#a5d8ff",
+      "roundness": {
+        "type": 3
+      },
+      "roughness": 0,
+      "seed": 3759566,
+      "strokeStyle": "solid",
+      "boundElements": [
+        {
+          "type": "text",
+          "id": "lbl-zips"
+        },
+        {
+          "type": "arrow",
+          "id": "a-zipsmap"
+        },
+        {
+          "type": "arrow",
+          "id": "a-store"
+        }
+      ]
+    },
+    {
+      "id": "box-regions",
+      "type": "rectangle",
+      "x": 800,
+      "y": 320,
+      "width": 300,
+      "height": 72,
+      "strokeColor": "#1971c2",
+      "backgroundColor": "#a5d8ff",
+      "roundness": {
+        "type": 3
+      },
+      "roughness": 0,
+      "seed": 5293038,
+      "strokeStyle": "solid",
+      "boundElements": [
+        {
+          "type": "text",
+          "id": "lbl-regions"
+        },
+        {
+          "type": "arrow",
+          "id": "a-scope"
+        }
+      ]
+    },
+    {
+      "id": "box-zipid",
+      "type": "rectangle",
+      "x": 800,
+      "y": 420,
+      "width": 300,
+      "height": 72,
+      "strokeColor": "#1971c2",
+      "backgroundColor": "#a5d8ff",
+      "roundness": {
+        "type": 3
+      },
+      "roughness": 0,
+      "seed": 9223984,
+      "strokeStyle": "solid",
+      "boundElements": [
+        {
+          "type": "text",
+          "id": "lbl-zipid"
+        },
+        {
+          "type": "arrow",
+          "id": "a-panel"
+        }
+      ]
+    },
+    {
+      "id": "lbl-geocode",
+      "type": "text",
+      "x": 810,
+      "y": 145.2,
+      "width": 280,
+      "height": 21.6,
+      "text": "/geocode",
+      "originalText": "/geocode",
+      "fontSize": 18,
+      "fontFamily": 3,
+      "lineHeight": 1.2,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "box-geocode",
+      "seed": 5640484
+    },
+    {
+      "id": "lbl-zips",
+      "type": "text",
+      "x": 810,
+      "y": 245.2,
+      "width": 280,
+      "height": 21.6,
+      "text": "/zips",
+      "originalText": "/zips",
+      "fontSize": 18,
+      "fontFamily": 3,
+      "lineHeight": 1.2,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "box-zips",
+      "seed": 8813259
+    },
+    {
+      "id": "lbl-regions",
+      "type": "text",
+      "x": 810,
+      "y": 345.2,
+      "width": 280,
+      "height": 21.6,
+      "text": "/regions",
+      "originalText": "/regions",
+      "fontSize": 18,
+      "fontFamily": 3,
+      "lineHeight": 1.2,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "box-regions",
+      "seed": 1352790
+    },
+    {
+      "id": "lbl-zipid",
+      "type": "text",
+      "x": 810,
+      "y": 445.2,
+      "width": 280,
+      "height": 21.6,
+      "text": "/zip/{id}",
+      "originalText": "/zip/{id}",
+      "fontSize": 18,
+      "fontFamily": 3,
+      "lineHeight": 1.2,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "box-zipid",
+      "seed": 3562512
+    },
+    {
+      "id": "box-geocoder",
+      "type": "rectangle",
+      "x": 1320,
+      "y": 120,
+      "width": 240,
+      "height": 72,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "roundness": {
+        "type": 3
+      },
+      "roughness": 0,
+      "seed": 7960682,
+      "strokeStyle": "dashed",
+      "boundElements": [
+        {
+          "type": "text",
+          "id": "lbl-geocoder"
+        },
+        {
+          "type": "arrow",
+          "id": "a-ext"
+        }
+      ]
+    },
+    {
+      "id": "lbl-geocoder",
+      "type": "text",
+      "x": 1330,
+      "y": 134.4,
+      "width": 220,
+      "height": 43.2,
+      "text": "Census Geocoder\n/ Nominatim",
+      "originalText": "Census Geocoder\n/ Nominatim",
+      "fontSize": 16,
+      "fontFamily": 6,
+      "lineHeight": 1.35,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "box-geocoder",
+      "seed": 2589259
+    },
+    {
+      "id": "box-store",
+      "type": "rectangle",
+      "x": 1320,
+      "y": 220,
+      "width": 240,
+      "height": 96,
+      "strokeColor": "#2f9e44",
+      "backgroundColor": "#b2f2bb",
+      "roundness": {
+        "type": 3
+      },
+      "roughness": 0,
+      "seed": 9018906,
+      "strokeStyle": "solid",
+      "boundElements": [
+        {
+          "type": "text",
+          "id": "lbl-store"
+        },
+        {
+          "type": "arrow",
+          "id": "a-store"
+        }
+      ]
+    },
+    {
+      "id": "lbl-store",
+      "type": "text",
+      "x": 1330,
+      "y": 246.4,
+      "width": 220,
+      "height": 43.2,
+      "text": "SQLite (zips, regions)\n+ per-state ZCTA TopoJSON",
+      "originalText": "SQLite (zips, regions)\n+ per-state ZCTA TopoJSON",
+      "fontSize": 16,
+      "fontFamily": 6,
+      "lineHeight": 1.35,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "box-store",
+      "seed": 3667021
+    },
+    {
+      "id": "a-geo",
+      "type": "arrow",
+      "x": 388,
+      "y": 156,
+      "width": 404,
+      "height": 0,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          404,
+          0
+        ]
+      ],
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "startArrowhead": "arrow",
+      "endArrowhead": "arrow",
+      "roughness": 0,
+      "seed": 7010710,
+      "startBinding": {
+        "elementId": "box-geo",
+        "focus": 0,
+        "gap": 8
+      },
+      "endBinding": {
+        "elementId": "box-geocode",
+        "focus": 0,
+        "gap": 8
+      },
+      "boundElements": [
+        {
+          "type": "text",
+          "id": "lbl-a1"
+        }
+      ]
+    },
+    {
+      "id": "lbl-a1",
+      "type": "text",
+      "x": 566.0,
+      "y": 145.2,
+      "width": 48.0,
+      "height": 21.6,
+      "text": "HTTPS",
+      "originalText": "HTTPS",
+      "fontSize": 16,
+      "fontFamily": 6,
+      "lineHeight": 1.35,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "a-geo",
+      "seed": 1081216
+    },
+    {
+      "id": "a-zipsmap",
+      "type": "arrow",
+      "x": 792,
+      "y": 256,
+      "width": 404,
+      "height": 0,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          -404,
+          0
+        ]
+      ],
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "roughness": 0,
+      "seed": 5962712,
+      "startBinding": {
+        "elementId": "box-zips",
+        "focus": 0,
+        "gap": 8
+      },
+      "endBinding": {
+        "elementId": "box-mapv",
+        "focus": 0,
+        "gap": 8
+      },
+      "boundElements": [
+        {
+          "type": "text",
+          "id": "lbl-a2"
+        }
+      ]
+    },
+    {
+      "id": "lbl-a2",
+      "type": "text",
+      "x": 513.2,
+      "y": 245.2,
+      "width": 153.6,
+      "height": 21.6,
+      "text": "GeoJSON in scope",
+      "originalText": "GeoJSON in scope",
+      "fontSize": 16,
+      "fontFamily": 6,
+      "lineHeight": 1.35,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "a-zipsmap",
+      "seed": 7088895
+    },
+    {
+      "id": "a-scope",
+      "type": "arrow",
+      "x": 388,
+      "y": 356,
+      "width": 404,
+      "height": 0,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          404,
+          0
+        ]
+      ],
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "startArrowhead": "arrow",
+      "endArrowhead": "arrow",
+      "roughness": 0,
+      "seed": 7916192,
+      "startBinding": {
+        "elementId": "box-scope",
+        "focus": 0,
+        "gap": 8
+      },
+      "endBinding": {
+        "elementId": "box-regions",
+        "focus": 0,
+        "gap": 8
+      },
+      "boundElements": [
+        {
+          "type": "text",
+          "id": "lbl-a3"
+        }
+      ]
+    },
+    {
+      "id": "lbl-a3",
+      "type": "text",
+      "x": 561.2,
+      "y": 345.2,
+      "width": 57.6,
+      "height": 21.6,
+      "text": "search",
+      "originalText": "search",
+      "fontSize": 16,
+      "fontFamily": 6,
+      "lineHeight": 1.35,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "a-scope",
+      "seed": 2183453
+    },
+    {
+      "id": "a-panel",
+      "type": "arrow",
+      "x": 388,
+      "y": 456,
+      "width": 404,
+      "height": 0,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          404,
+          0
+        ]
+      ],
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "startArrowhead": "arrow",
+      "endArrowhead": "arrow",
+      "roughness": 0,
+      "seed": 2431460,
+      "startBinding": {
+        "elementId": "box-panel",
+        "focus": 0,
+        "gap": 8
+      },
+      "endBinding": {
+        "elementId": "box-zipid",
+        "focus": 0,
+        "gap": 8
+      },
+      "boundElements": [
+        {
+          "type": "text",
+          "id": "lbl-a4"
+        }
+      ]
+    },
+    {
+      "id": "lbl-a4",
+      "type": "text",
+      "x": 556.4,
+      "y": 445.2,
+      "width": 67.2,
+      "height": 21.6,
+      "text": "details",
+      "originalText": "details",
+      "fontSize": 16,
+      "fontFamily": 6,
+      "lineHeight": 1.35,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "a-panel",
+      "seed": 5588118
+    },
+    {
+      "id": "a-ext",
+      "type": "arrow",
+      "x": 1108,
+      "y": 156,
+      "width": 204,
+      "height": 0,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          204,
+          0
+        ]
+      ],
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "roughness": 0,
+      "seed": 6648248,
+      "startBinding": {
+        "elementId": "box-geocode",
+        "focus": 0,
+        "gap": 8
+      },
+      "endBinding": {
+        "elementId": "box-geocoder",
+        "focus": 0,
+        "gap": 8
+      },
+      "boundElements": [
+        {
+          "type": "text",
+          "id": "lbl-a5"
+        }
+      ]
+    },
+    {
+      "id": "lbl-a5",
+      "type": "text",
+      "x": 1162.0,
+      "y": 145.2,
+      "width": 96.0,
+      "height": 21.6,
+      "text": "names only",
+      "originalText": "names only",
+      "fontSize": 16,
+      "fontFamily": 6,
+      "lineHeight": 1.35,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "a-ext",
+      "seed": 5650343
+    },
+    {
+      "id": "a-store",
+      "type": "arrow",
+      "x": 1108,
+      "y": 256,
+      "width": 204,
+      "height": 0,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          204,
+          0
+        ]
+      ],
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "roughness": 0,
+      "seed": 5893112,
+      "startBinding": {
+        "elementId": "box-zips",
+        "focus": 0,
+        "gap": 8
+      },
+      "endBinding": {
+        "elementId": "box-store",
+        "focus": 0,
+        "gap": 8
+      },
+      "boundElements": [
+        {
+          "type": "text",
+          "id": "lbl-a6"
+        }
+      ]
+    },
+    {
+      "id": "lbl-a6",
+      "type": "text",
+      "x": 1142.8,
+      "y": 245.2,
+      "width": 134.4,
+      "height": 21.6,
+      "text": "filter + cache",
+      "originalText": "filter + cache",
+      "fontSize": 16,
+      "fontFamily": 6,
+      "lineHeight": 1.35,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "a-store",
+      "seed": 3474696
+    },
+    {
+      "id": "title",
+      "type": "text",
+      "x": 587,
+      "y": -80,
+      "width": 386.4,
+      "height": 37.8,
+      "text": "ZipScope \u2014 Architecture",
+      "originalText": "ZipScope \u2014 Architecture",
+      "fontSize": 28,
+      "fontFamily": 6,
+      "lineHeight": 1.35,
+      "textAlign": "center",
+      "seed": 5560694
+    },
+    {
+      "id": "notes",
+      "type": "text",
+      "x": 80,
+      "y": 600,
+      "width": 806.4,
+      "height": 43.2,
+      "text": "Server does the filtering \u2014 the client only ever loads the current scope's polygons.\nZIP areas are Census ZCTAs (approximate USPS ZIP service areas).",
+      "originalText": "Server does the filtering \u2014 the client only ever loads the current scope's polygons.\nZIP areas are Census ZCTAs (approximate USPS ZIP service areas).",
+      "fontSize": 16,
+      "fontFamily": 6,
+      "lineHeight": 1.35,
+      "textAlign": "left",
+      "seed": 7260631
+    }
+  ],
+  "appState": {
+    "viewBackgroundColor": "#ffffff",
+    "gridModeEnabled": false
+  },
+  "files": {}
+}

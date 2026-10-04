@@ -1,0 +1,6 @@
+# ZipScope API runtime (Python 3.9+, install into the project .venv)
+fastapi>=0.115
+uvicorn[standard]
+httpx
+shapely>=2.0
+pyshp>=2.3

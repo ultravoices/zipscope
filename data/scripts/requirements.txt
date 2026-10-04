@@ -1,0 +1,3 @@
+# ZipScope data pipeline (Python 3.9+, install into the project .venv)
+pyshp>=2.3
+shapely>=2.0

@@ -1,0 +1,18 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Node / web
+node_modules/
+web/dist/
+tools/
+
+# Data (regenerable via data/scripts)
+data/raw/
+data/out/
+
+# Logs & OS
+logs-*.txt
+*.log
+.DS_Store
