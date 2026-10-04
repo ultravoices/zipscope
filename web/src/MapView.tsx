@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import type { FeatureCollection } from "geojson";
+import type { Feature, FeatureCollection } from "geojson";
 import type { GeoFeature, ZipFeatureCollection } from "./api";
 
 // Minimal MapLibre style: dark background + OpenStreetMap raster (no API key).
@@ -21,32 +21,25 @@ const BASE_STYLE = {
   ],
 } as unknown as maplibregl.StyleSpecification;
 
-const AREA_COLOR = [
-  "step",
-  ["get", "area"],
-  "#9ecae9",
-  1, "#6baed6",
-  4, "#4292c6",
-  12, "#2171b5",
-  40, "#08519c",
-] as any;
-
 interface MapViewProps {
   data: ZipFeatureCollection | null;
   user: { lat: number; lon: number } | null;
   userZip: string | null;
   selectedZip: string | null;
   onSelectZip: (zip: string | null) => void;
+  onMapError?: (msg: string) => void;
 }
 
 const emptyFC = (): FeatureCollection => ({ type: "FeatureCollection", features: [] });
 
-export function MapView({ data, user, userZip, selectedZip, onSelectZip }: MapViewProps) {
+export function MapView({ data, user, userZip, selectedZip, onSelectZip, onMapError }: MapViewProps) {
   const divRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
   const onSelectRef = useRef(onSelectZip);
   onSelectRef.current = onSelectZip;
+  const onErrRef = useRef(onMapError);
+  onErrRef.current = onMapError;
 
   // ---- init once ----
   useEffect(() => {
@@ -61,54 +54,94 @@ export function MapView({ data, user, userZip, selectedZip, onSelectZip }: MapVi
     map.addControl(new maplibregl.NavigationControl(), "top-right");
     map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
 
-    map.on("load", () => {
-      if (!map.getSource("zctas")) {
-        map.addSource("zctas", { type: "geojson", data: emptyFC() });
-        map.addLayer({
-          id: "zctas-fill",
-          type: "fill",
-          source: "zctas",
-          paint: {
-            "fill-color": AREA_COLOR,
-            "fill-opacity": [
-              "case",
-              ["boolean", ["feature-state", "selected"]], 0.7,
-              ["boolean", ["feature-state", "mine"]], 0.55,
-              ["boolean", ["feature-state", "hover"]], 0.5,
-              0.3,
-            ] as any,
-          },
-        });
-        map.addLayer({
-          id: "zctas-line",
-          type: "line",
-          source: "zctas",
-          paint: {
-            "line-color": [
-              "case",
-              ["boolean", ["feature-state", "selected"]], "#f59f00",
-              ["boolean", ["feature-state", "mine"]], "#ff6b35",
-              "#1864ab",
-            ] as any,
-            "line-width": ["case", ["boolean", ["feature-state", "selected"]], 2, 0.5] as any,
-            "line-opacity": 0.85,
-          },
-        });
+    // addLayer can throw on spec issues; guard each so one bad layer can't
+    // silently drop everything behind it (and the user marker).
+    const safeAdd = (spec: maplibregl.LayerSpecification, fallback?: maplibregl.LayerSpecification) => {
+      try {
+        map.addLayer(spec);
+      } catch (e) {
+        console.error("[map] addLayer failed:", (e as Error).message);
+        if (fallback) {
+          try {
+            map.addLayer(fallback);
+            return;
+          } catch (e2) {
+            onErrRef.current?.(`map layer "${spec.id}" failed: ${(e2 as Error).message}`);
+          }
+        } else {
+          onErrRef.current?.(`map layer "${spec.id}" failed: ${(e as Error).message}`);
+        }
       }
-      if (!map.getSource("user")) {
-        map.addSource("user", { type: "geojson", data: emptyFC() });
-        map.addLayer({
-          id: "user-halo",
-          type: "circle",
-          source: "user",
-          paint: { "circle-radius": 14, "circle-color": "#ffffff", "circle-opacity": 0.35 },
-        });
-        map.addLayer({
-          id: "user-dot",
-          type: "circle",
-          source: "user",
-          paint: { "circle-radius": 5, "circle-color": "#ff2d55", "circle-stroke-width": 2, "circle-stroke-color": "#ffffff" },
-        });
+    };
+
+    map.on("load", () => {
+      try {
+        if (!map.getSource("zctas")) {
+          map.addSource("zctas", { type: "geojson", data: emptyFC() });
+          safeAdd(
+            {
+              id: "zctas-fill",
+              type: "fill",
+              source: "zctas",
+              paint: {
+                "fill-color": [
+                  "step", ["get", "area"],
+                  "#9ecae9", 1, "#6baed6", 4, "#4292c6", 12, "#2171b5", 40, "#08519c",
+                ] as any,
+                "fill-opacity": 0.3,
+              },
+            },
+            { id: "zctas-fill", type: "fill", source: "zctas", paint: { "fill-color": "#4292c6", "fill-opacity": 0.3 } }
+          );
+        }
+        if (!map.getLayer("zctas-line")) {
+          safeAdd(
+            {
+              id: "zctas-line",
+              type: "line",
+              source: "zctas",
+              paint: { "line-color": "#08519c", "line-width": 0.5, "line-opacity": 0.85 },
+            }
+          );
+        }
+        if (!map.getSource("highlight")) {
+          map.addSource("highlight", { type: "geojson", data: emptyFC() });
+          safeAdd({
+            id: "highlight-fill",
+            type: "fill",
+            source: "highlight",
+            paint: {
+              "fill-color": ["case", ["==", ["get", "kind"], "selected"], "#f59f00", "#ff2d55"] as any,
+              "fill-opacity": ["case", ["==", ["get", "kind"], "selected"], 0.55, 0.4] as any,
+            },
+          });
+          safeAdd({
+            id: "highlight-line",
+            type: "line",
+            source: "highlight",
+            paint: {
+              "line-color": ["case", ["==", ["get", "kind"], "selected"], "#f59f00", "#ff2d55"] as any,
+              "line-width": 2,
+            },
+          });
+        }
+        if (!map.getSource("user")) {
+          map.addSource("user", { type: "geojson", data: emptyFC() });
+          safeAdd({
+            id: "user-halo",
+            type: "circle",
+            source: "user",
+            paint: { "circle-radius": 14, "circle-color": "#ffffff", "circle-opacity": 0.35 },
+          });
+          safeAdd({
+            id: "user-dot",
+            type: "circle",
+            source: "user",
+            paint: { "circle-radius": 5, "circle-color": "#ff2d55", "circle-stroke-width": 2, "circle-stroke-color": "#ffffff" },
+          });
+        }
+      } catch (e) {
+        onErrRef.current?.(`map setup failed: ${(e as Error).message}`);
       }
     });
 
@@ -132,9 +165,8 @@ export function MapView({ data, user, userZip, selectedZip, onSelectZip }: MapVi
       const f = e.features?.[0] as GeoFeature | undefined;
       onSelectRef.current(f ? f.properties.zip : null);
     });
-    // click on empty map clears selection
     map.on("click", (e) => {
-      if (e.defaultPrevented) return;
+      // click on empty map clears selection
       if (!map.queryRenderedFeatures(e.point, { layers: ["zctas-fill"] }).length) {
         onSelectRef.current(null);
       }
@@ -182,45 +214,22 @@ export function MapView({ data, user, userZip, selectedZip, onSelectZip }: MapVi
     }
   }, [user]);
 
-  // ---- feature-state highlights ----
+  // ---- highlight selected / user zips (separate source, no feature-state) ----
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !map.isStyleLoaded()) return;
-    const feats = (data?.features ?? []).filter((f) => f.id != null);
-    for (const f of feats) {
-      const fid = f.id as string;
-      map.setFeatureState({ source: "zctas", id: fid }, { selected: 0, hover: 0, mine: 0 });
-      if (selectedZip && fid === selectedZip) map.setFeatureState({ source: "zctas", id: fid }, { selected: 1 });
-      if (userZip && fid === userZip) map.setFeatureState({ source: "zctas", id: fid }, { mine: 1 });
+    const src = map.getSource("highlight") as maplibregl.GeoJSONSource | undefined;
+    if (!src) return;
+    const feats: Feature[] = [];
+    for (const f of data?.features ?? []) {
+      if (selectedZip && f.properties.zip === selectedZip) {
+        feats.push({ type: "Feature", properties: { kind: "selected" }, geometry: f.geometry });
+      } else if (userZip && f.properties.zip === userZip) {
+        feats.push({ type: "Feature", properties: { kind: "mine" }, geometry: f.geometry });
+      }
     }
+    src.setData({ type: "FeatureCollection", features: feats });
   }, [data, selectedZip, userZip]);
-
-  // ---- hover feature-state ----
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    const move = (e: maplibregl.MapMouseEvent) => {
-      if (!map.isStyleLoaded()) return;
-      const f = map.queryRenderedFeatures(e.point, { layers: ["zctas-fill"] })[0];
-      if (f && f.id != null) {
-        const cur = map.getFeatureState({ source: "zctas", id: f.id as number }) as Record<string, number>;
-        if (!cur.hover) map.setFeatureState({ source: "zctas", id: f.id as number }, { hover: 1 });
-      }
-    };
-    const leave = () => {
-      for (const f of map.queryRenderedFeatures({ layers: ["zctas-fill"] })) {
-        if (f.id != null && (map.getFeatureState({ source: "zctas", id: f.id as number }) as Record<string, number>).hover) {
-          map.setFeatureState({ source: "zctas", id: f.id as number }, { hover: 0 });
-        }
-      }
-    };
-    map.on("mousemove", move);
-    map.on("mouseout", leave);
-    return () => {
-      map.off("mousemove", move);
-      map.off("mouseout", leave);
-    };
-  }, [data]);
 
   return (
     <div className="map-wrap">
