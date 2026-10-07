@@ -104,13 +104,13 @@ def _ensure_db_loaded():
 
 
 def _ensure_tree(state_fips: str) -> tuple:
-    """Build (or return cached) a per-state STRtree. Returns (geoms, zips_list)."""
+    """Build (or return cached) a per-state STRtree. Returns (geoms, zips_list, tree)."""
     with _lock:
         if state_fips in _state_trees:
             return _state_trees[state_fips]
     fname = _state_files.get(state_fips)
     if not fname:
-        return ([], [])
+        return ([], [], None)
     fc = _load_state(fname).get("features", [])
     geoms, zips_list = [], []
     for feat in fc:
@@ -128,7 +128,7 @@ def _ensure_tree(state_fips: str) -> tuple:
     tree = STRtree(geoms) if geoms else None
     with _lock:
         _state_trees[state_fips] = (geoms, zips_list, tree)
-    return (geoms, zips_list)
+    return (geoms, zips_list, tree)
 
 
 def _geocode_state_point(state_fips: str, p: Point, geoms: list, zips_list: list, tree) -> Optional[str]:
@@ -207,7 +207,8 @@ def _zip_payload(row: dict) -> dict:
 
 
 class GeoPoint(BaseModel):
-    lat: float = Field(..., ge=-90, le=-180)
+    lat: float = Field(..., ge=-90, le=90)
+    lon: float = Field(..., ge=-180, le=180)
 
 
 @app.post("/api/geocode")
