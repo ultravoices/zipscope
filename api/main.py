@@ -57,15 +57,16 @@ app.add_middleware(
 
 _lock = threading.Lock()
 _state_cache: dict = {}
-_geoms: list = []            # parallel to _geom_zips
-_geom_zips: list = []        # zip ids, same order as _geoms
-_geom_by_zip: dict = {}      # zip -> geometry (for nearest/contains)
-_state_files: dict = {}      # state_fips -> filename
-_zip_state: dict = {}        # zip -> primary state_fips
-_tree: Optional[STRtree] = None
+_state_files: dict = {}       # state_fips -> filename
+_zip_state: dict = {}         # zip -> primary state_fips (from DB)
+
+# Lazy-loaded: per-state STRtree (built on first geocode for that state).
+# Key: state_fips, Value: (geoms, zips_list)
+_state_trees: dict = {}
 
 
 def _load_state(fname: str) -> dict:
+    """Load a state GeoJSON file (lazy, cached)."""
     with _lock:
         if fname in _state_cache:
             return _state_cache[fname]
@@ -79,32 +80,90 @@ def _load_state(fname: str) -> dict:
     return fc
 
 
-def _build():
-    """Load DB + geometries at startup."""
-    global _tree
+def _ensure_db_loaded():
+    """Load ZIP metadata from DB at startup (no geometries, < 30 MB)."""
     if not os.path.exists(DB_PATH):
         raise RuntimeError(
             f"missing {DB_PATH} — run the data pipeline first: "
             "./.venv/bin/python data/scripts/build_data.py")
+    con = sqlite3.connect(DB_PATH)
+    con.row_factory = sqlite3.Row
+    # Read (zip, state_fips, lat, lon) for all ZIPs — small, ~33k rows.
+    rows = con.execute(
+        "SELECT zip, state_fips, centroid_lat, centroid_lon "
+        "FROM zips WHERE centroid_lat IS NOT NULL AND centroid_lon IS NOT NULL").fetchall()
+    for row in rows:
+        d = dict(row)
+        _zip_state[d["zip"]] = d["state_fips"]
+    con.close()
+    # Scan state GeoJSON filenames (no data loading).
     for fname in sorted(os.listdir(ZCTA_DIR)):
         if fname.endswith(".geojson"):
-            st = fname[: -len(".geojson")]
+            st = fname[:-len(".geojson")]
             _state_files[st] = fname
-            for feat in _load_state(fname).get("features", []):
-                z = feat.get("properties", {}).get("zip")
-                if not z or z in _geom_by_zip:
-                    continue
-                try:
-                    g = shape(feat["geometry"])
-                except Exception:
-                    continue
-                if g and not g.is_empty:
-                    _geom_by_zip[z] = g
-                    _geoms.append(g)
-                    _geom_zips.append(z)
-                    _zip_state[z] = st
-    if _geoms:
-        _tree = STRtree(_geoms)
+
+
+def _ensure_tree(state_fips: str) -> tuple:
+    """Build (or return cached) a per-state STRtree. Returns (geoms, zips_list)."""
+    with _lock:
+        if state_fips in _state_trees:
+            return _state_trees[state_fips]
+    fname = _state_files.get(state_fips)
+    if not fname:
+        return ([], [])
+    fc = _load_state(fname).get("features", [])
+    geoms, zips_list = [], []
+    for feat in fc:
+        z = feat.get("properties", {}).get("zip")
+        if not z:
+            continue
+        try:
+            g = shape(feat["geometry"])
+        except Exception:
+            continue
+        if g and not g.is_empty:
+            geoms.append(g)
+            zips_list.append(z)
+    # Build STRtree for this state only (small, < 20 MB).
+    tree = STRtree(geoms) if geoms else None
+    with _lock:
+        _state_trees[state_fips] = (geoms, zips_list, tree)
+    return (geoms, zips_list)
+
+
+def _geocode_state_point(state_fips: str, p: Point, geoms: list, zips_list: list, tree) -> Optional[str]:
+    """Try to find the ZCTA containing p using the state's STRtree. Returns zip id or None."""
+    if tree is None:
+        return None
+    for i in tree.query(p.buffer(0.05)):
+        if geoms[i].contains(p):
+            return zips_list[i]
+    return None
+
+
+def _nearest_centroid_zip(lat: float, lon: float) -> Optional[str]:
+    """Find the ZIP whose centroid is nearest to (lat, lon). Uses in-memory centroid list."""
+    # Read centroids from DB (fast, no geometries loaded).
+    con = sqlite3.connect(DB_PATH)
+    con.row_factory = sqlite3.Row
+    # Find centroids within 2 degrees (bounding box) to limit search space.
+    rows = con.execute(
+        "SELECT zip, centroid_lat, centroid_lon FROM zips "
+        "WHERE centroid_lat BETWEEN ? AND ? AND centroid_lon BETWEEN ? AND ?",
+        (lat - 2.0, lat + 2.0, lon - 2.0, lon + 2.0)).fetchall()
+    con.close()
+    if not rows:
+        return None
+    best_zip, best_dist = None, float('inf')
+    for row in rows:
+        d = dict(row)
+        c_lat, c_lon = d["centroid_lat"], d["centroid_lon"]
+        # Simple Euclidean distance (fine for ~2 degree bounding box).
+        dist = math.sqrt((lat - c_lat) ** 2 + (lon - c_lon) ** 2)
+        if dist < best_dist:
+            best_dist = dist
+            best_zip = d["zip"]
+    return best_zip
 
 
 app.state.built = False
@@ -112,13 +171,10 @@ app.state.built = False
 
 @app.on_event("startup")
 def _startup():
-    if os.path.exists(DB_PATH):
-        _build()
-        app.state.built = True
-    else:
-        print(f"[api] WARNING: no built data at {DATA}; endpoints will 503")
-    print(f"[api] ready: {len(_geom_by_zip)} zcta geometries, "
-          f"{len(_state_files)} state files")
+    _ensure_db_loaded()
+    app.state.built = True
+    print(f"[api] ready: {len(_state_files)} state files, "
+          f"{len(_zip_state)} zips (lazy-loaded geometries)")
 
 
 def _db():
@@ -151,8 +207,7 @@ def _zip_payload(row: dict) -> dict:
 
 
 class GeoPoint(BaseModel):
-    lat: float = Field(..., ge=-90, le=90)
-    lon: float = Field(..., ge=-180, le=180)
+    lat: float = Field(..., ge=-90, le=-180)
 
 
 @app.post("/api/geocode")
@@ -162,23 +217,62 @@ def geocode(pt: GeoPoint):
     con = _db()
     try:
         p = Point(pt.lon, pt.lat)
-        found = None
-        if _tree is not None:
-            for i in _tree.query(p.buffer(0.05)):
-                if _geoms[i].contains(p):
-                    found = _geom_zips[i]
-                    break
-            if found is None:
-                # fall back to nearest ZCTA (water / gaps)
-                i = _tree.nearest(p)
-                if i is not None and _geoms[i].distance(p) < 2.0:
-                    found = _geom_zips[i]
-        if not found:
+        # 1. Find nearest centroid (from DB metadata, no geometries loaded).
+        nearest_zip = _nearest_centroid_zip(pt.lat, pt.lon)
+        if not nearest_zip:
             raise HTTPException(404, "no ZCTA covers this location")
-        row = _zip_row(con, found)
-        if not row:
+        nearest_state = _zip_state.get(nearest_zip)
+        if not nearest_state:
             raise HTTPException(404, "no ZCTA covers this location")
-        return _zip_payload(row)
+
+        # 2. Try the nearest state first (fast path).
+        geoms, zips_list, tree = _ensure_tree(nearest_state)
+        found = _geocode_state_point(nearest_state, p, geoms, zips_list, tree)
+        if found:
+            row = _zip_row(con, found)
+            if row:
+                return _zip_payload(row)
+            raise HTTPException(404, "no ZCTA covers this location")
+
+        # 3. If not found in nearest state, try other states (for ocean/water).
+        #    Load a few nearby state trees (from the bounding-box candidates).
+        candidate_states = set()
+        candidate_rows = con.execute(
+            "SELECT DISTINCT state_fips FROM zips "
+            "WHERE centroid_lat BETWEEN ? AND ? AND centroid_lon BETWEEN ? AND ?",
+            (pt.lat - 2.0, pt.lat + 2.0, pt.lon - 2.0, pt.lon + 2.0)).fetchall()
+        for cr in candidate_rows:
+            candidate_states.add(dict(cr)["state_fips"])
+
+        for st_fips in candidate_states:
+            if st_fips == nearest_state:
+                continue
+            g, zl, tr = _ensure_tree(st_fips)
+            res = _geocode_state_point(st_fips, p, g, zl, tr)
+            if res:
+                row = _zip_row(con, res)
+                if row:
+                    return _zip_payload(row)
+                # Still no match — try nearest from this state.
+                if tr is not None:
+                    # Find nearest ZCTA in this state to the point.
+                    dists = [(geoms[i].distance(p), zips_list[i]) for i in range(len(geoms))]
+                    dists.sort(key=lambda x: x[0])
+                    if dists and dists[0][0] < 2.0:
+                        row = _zip_row(con, dists[0][1])
+                        if row:
+                            return _zip_payload(row)
+
+        # 4. Fallback: nearest ZCTA from the nearest state (for water/coverage gaps).
+        if tree is not None and nearest_state == candidate_states.pop() or True:
+            dists = [(geoms[i].distance(p), zips_list[i]) for i in range(len(geoms))]
+            dists.sort(key=lambda x: x[0])
+            if dists and dists[0][0] < 2.0:
+                row = _zip_row(con, dists[0][1])
+                if row:
+                    return _zip_payload(row)
+
+        raise HTTPException(404, "no ZCTA covers this location")
     finally:
         con.close()
 
@@ -339,7 +433,7 @@ def health():
             report = json.load(f)
     return {
         "ok": bool(app.state.built),
-        "geoms_loaded": len(_geom_by_zip),
+        "geoms_loaded": 0,  # lazy-loaded — report actual on demand
         "data": {
             "built_at": report.get("built_at"),
             "zctas": report.get("zctas"),
