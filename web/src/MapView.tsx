@@ -181,9 +181,10 @@ export function MapView({ data, user, userZip, selectedZip, onSelectZip, onMapEr
   // ---- data updates (viewport-based: only render visible features, plan item 4) ----
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map) { console.log('[map] no map ref'); return; }
     const src = map.getSource("zctas") as maplibregl.GeoJSONSource | undefined;
     const fullData = (data as FeatureCollection) ?? emptyFC();
+    console.log('[map data] scope changed, data type:', typeof data, 'features:', fullData.features?.length ?? 0);
 
     const push = () => {
       if (fullData.features.length) {
@@ -193,25 +194,23 @@ export function MapView({ data, user, userZip, selectedZip, onSelectZip, onMapEr
           b.extend([props.lon, props.lat]);
         }
         map.fitBounds(b, { padding: 48, duration: 650, maxZoom: 11 });
+        console.log('[map data] fitBounds to', fullData.features.length, 'features');
       }
     };
 
-    // On scope change (data updates): render ALL features (don't filter), then fit map.
-    // On viewport moves: only render visible features (optimization for big states).
     const setData = (features: GeoFeature[]) => {
       const currentSrc = map.getSource("zctas") as maplibregl.GeoJSONSource | undefined;
-      if (!currentSrc) return;
-      if (!features.length) { currentSrc.setData(emptyFC()); return; }
+      if (!currentSrc) { console.log('[map data] no source'); return; }
+      if (!features.length) { console.log('[map data] 0 features, clearing'); currentSrc.setData(emptyFC()); return; }
+      console.log('[map data] setting', features.length, 'features to source');
       currentSrc.setData({ type: "FeatureCollection", features });
     };
 
-    // Scope change handler: always render all, never filter.
     const onScopeChange = () => {
-      push();  // fitBounds to the new scope's features
+      push();
       setData(fullData.features as GeoFeature[]);
     };
 
-    // Viewport move handler: filter to visible features only.
     const onMoveEnd = () => {
       const bounds = map.getBounds();
       const visible = fullData.features.filter((f) => {
@@ -223,17 +222,17 @@ export function MapView({ data, user, userZip, selectedZip, onSelectZip, onMapEr
     };
 
     if (src) {
-      // Source exists (map already loaded): apply data immediately
-      if (data) {  // scope changed (has new data)
+      console.log('[map data] source exists, data truthy:', !!data);
+      if (data) {
         onScopeChange();
       }
       map.on("moveend", onMoveEnd);
       return () => { map.off("moveend", onMoveEnd); };
     } else {
-      // Source not yet (map not loaded): wait for it.
+      console.log('[map data] no source, waiting for load');
       const onLoad = () => {
+        console.log('[map data] map loaded event, data:', data ? 'truthy' : 'null');
         if (data) {
-          // Map loaded → sources exist → apply data immediately
           onScopeChange();
         }
       };
