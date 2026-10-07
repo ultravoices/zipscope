@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { Feature, FeatureCollection } from "geojson";
-import type { GeoFeature, ZipFeatureCollection } from "./api";
+import type { GeoFeature, ZipFeatureCollection, ZipFeatureProps } from "./api";
 
 // Minimal MapLibre style: dark background + OpenStreetMap raster (no API key).
 const BASE_STYLE = {
@@ -188,7 +188,10 @@ export function MapView({ data, user, userZip, selectedZip, onSelectZip, onMapEr
       const fullData = (data as FeatureCollection) ?? emptyFC();
       if (fullData.features.length) {
         const b = new maplibregl.LngLatBounds();
-        for (const f of fullData.features) b.extend([f.properties.lon, f.properties.lat]);
+        for (const f of fullData.features) {
+          const props = f.properties ?? ({} as ZipFeatureProps);
+          b.extend([props.lon, props.lat]);
+        }
         map.fitBounds(b, { padding: 48, duration: 650, maxZoom: 11 });
       }
     };
@@ -199,7 +202,8 @@ export function MapView({ data, user, userZip, selectedZip, onSelectZip, onMapEr
       if (initial) { push(); initial = false; }
       const bounds = map.getBounds();
       const visible = fullData.features.filter((f) => {
-        const c = [f.properties.lon, f.properties.lat] as [number, number];
+        const props = f.properties ?? ({} as ZipFeatureProps);
+        const c = [props.lon, props.lat] as [number, number];
         return bounds.contains(c);
       });
       src.setData({ type: "FeatureCollection", features: visible });

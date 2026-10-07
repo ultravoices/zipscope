@@ -38,9 +38,9 @@ export function ScopeSelector({ scope, regionName, onScopeChange, onPick, onPick
       if (/^[A-Z]{2}$/.test(trimmed) && scope === "state") {
         (async () => {
           try {
-            const r = await api.regions(trimmed, "state", undefined, 1);
-            if (r.regions?.length) {
-              onPick(r.regions[0]);
+            const r = await api.regions(trimmed, "state", "", 1);
+            if (r.length) {
+              onPick(r[0]);
               setQ("");
             }
           } catch {
@@ -60,8 +60,8 @@ export function ScopeSelector({ scope, regionName, onScopeChange, onPick, onPick
     const t = setTimeout(async () => {
       try {
         const r = isInitial
-          ? await api.regions(undefined, scope, undefined, 20)
-          : await api.regions(q, scope, undefined, 10);
+          ? await api.regions("", scope, "", 20)
+          : await api.regions(q, scope, "", 10);
         if (n === seq.current) {
           setResults(r);
           setOpen(r.length > 0);

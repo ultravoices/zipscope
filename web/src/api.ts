@@ -70,7 +70,7 @@ export const api = {
     return req<ZipFeatureCollection>(`/api/zips?${p.toString()}`);
   },
 
-  regions: async (q: string, scope?: RegionScope, state?: string, limit = 8): Promise<Region[]> => {
+  regions: async (q: string, scope?: RegionScope, state: string = "", limit = 8): Promise<Region[]> => {
     const p = new URLSearchParams();
     if (q) p.set("q", q);
     if (scope) p.set("scope", scope);
