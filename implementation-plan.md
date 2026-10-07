@@ -219,3 +219,6 @@ Implementation notes:
 - shapely 2.0: `LinearRing` not iterable (use `.coords`); `simplify(preserve_topology=True)` can emit invalid rings → `make_valid` pass; a stray `zctas = []` self-deletion in the build script; a missing `global _tree` in the API (geocode silently returned 404s).
 - MapLibre v6: no default ESM export (namespace import); `visualizeDraggable`/`maximumAccuracy` options removed; `@types/geojson` is module-scoped (named type imports).
 - **Scope selector returned 400 on button click** — fixed: `handleScopeChange` derives state FIPS, scope effect skips empty region, ScopeSelector pre-fetches.
+- **Scope effect still called with empty regionId** — fixed: explicit `scope.regionId === ""` guard in the scope effect (JavaScript's `!""` is `true` but was being relied upon loosely; made explicit).
+- **"Select a region" hint not shown when scope changed but no region picked** — fixed: hint banner now conditionally shows when scope is set but `regionId` is empty, telling the user "Select a [scope] from the dropdown above."
+- **State abbreviation search matched "American Samoa"** — when `scope=state` and `q="MO"`, the SQL `name LIKE '%MO%'` (case-insensitive) matched "S**mo**a" in "American Samoa". Fixed by detecting 2-letter state codes and matching by `state_fips` directly instead of substring matching.

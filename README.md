@@ -115,7 +115,7 @@ ZCTAs are Census *Zip Code Tabulation Areas* — the standard boundary approxima
 |---|---|---|
 | `POST /api/geocode` | `{lat, lon}` | ZCTA containing the point (STRtree; nearest within ~2° for gaps/water), with state/county/city + centroid. 404 if uncovered. |
 | `GET /api/zips` | `scope=state\|county\|place\|zip`, `region=<fips or zip>`, `state?` | GeoJSON FeatureCollection of the scope's ZCTAs + `meta.zips` count. County/place use true geometry intersection (many-to-many). |
-| `GET /api/regions` | `q?`, `scope?`, `state?`, `limit?` | Region search index for the selector (LIKE on names). |
+| `GET /api/regions` | `q?`, `scope?`, `state?`, `limit?` | Region search index for the selector. `scope=state` + 2-letter code (e.g. `MO`) matches by FIPS exactly (substring search avoids false positives). Otherwise LIKE on names. |
 | `GET /api/health` | — | `ok`, `geoms_loaded`, data provenance (vintages + source URLs). |
 
 CORS is open for the dev origins; per-state GeoJSON is lazily loaded into an in-memory cache on first request.
@@ -140,6 +140,8 @@ CORS is open for the dev origins; per-state GeoJSON is lazily loaded into an in-
 - **Geolocation in the in-app browser** may be simulated or denied — the manual search path (city/county/state/ZIP) is fully functional without it.
 - **ZCTAs are 1:500k** — coarse/blocky at city zoom; that's the best available key-free vintage.
 - **Census.gov soft-404s** (HTTP 200 + "Page not found" HTML) — `download_sources.py` sanity-checks file sizes; re-run it after each annual CB release.
+- **Scope selector UX:** Clicking City/County/State tabs clears the region (you must pick a specific region from the dropdown). A hint banner appears: "Select a [City/County/State] from the dropdown above to see its ZIP areas."
+- **State abbreviation search:** Typing a 2-letter code (e.g., `MO`, `tx`, `CA`) in the State scope resolves that state directly. This is a special-case lookup (exact FIPS match), not a substring search.
 
 ## Deployment
 

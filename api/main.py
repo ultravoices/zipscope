@@ -305,8 +305,16 @@ def search_regions(
             params.append(state)
         if q:
             like = f"%{q.strip()}%"
-            clauses.append("(name LIKE ? OR id = ?)")
-            params += [like, q.strip()]
+            q_stripped = q.strip()
+            # When scope=state and q is a 2-letter state code, match by FIPS
+            # (avoids case-insensitive LIKE matching substrings like "Samo").
+            abbr = q_stripped.upper()
+            if scope == "state" and abbr in _STATE_ABBR_TO_FIPS:
+                clauses.append("state_fips = ?")
+                params.append(_STATE_ABBR_TO_FIPS[abbr])
+            else:
+                clauses.append("(name LIKE ? OR id = ?)")
+                params += [like, q_stripped]
         sql = (f"SELECT scope, id, name, state_fips, code FROM regions "
                f"WHERE {' AND '.join(clauses)} ORDER BY name LIMIT ?")
         params.append(limit)

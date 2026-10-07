@@ -85,7 +85,8 @@ export default function App() {
 
   // load zips whenever the scope changes
   useEffect(() => {
-    if (!scope || !scope.regionId) return;  // skip until a region is selected or derived
+    // skip until a region is selected or derived (null scope or empty regionId)
+    if (!scope || scope.regionId === "") return;
     let alive = true;
     setLoading(true);
     setError(null);
@@ -181,9 +182,12 @@ export default function App() {
           {data && !loading && (
             <div className="zip-count">{(data.meta?.zips ?? data.features.length).toLocaleString()} ZIP areas</div>
           )}
-          {!scope && !apiDown && (
+          {(!scope || (scope && scope.regionId === "")) && !apiDown && (
             <div className="banner banner-hint">
-              Pick a <b>city</b>, <b>county</b>, or <b>state</b> above (or wait for location).
+              {!scope
+                ? "Pick a <b>city</b>, <b>county</b>, or <b>state</b> above (or wait for location)."
+                : `Select a <b>${scope.scope}</b> from the dropdown above to see its ZIP areas.`
+              }
             </div>
           )}
         </main>
