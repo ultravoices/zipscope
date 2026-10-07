@@ -185,9 +185,8 @@ export default function App() {
           {(!scope || (scope && scope.regionId === "")) && !apiDown && (
             <div className="banner banner-hint">
               {!scope
-                ? "Pick a <b>city</b>, <b>county</b>, or <b>state</b> above (or wait for location)."
-                : `Select a <b>${scope.scope}</b> from the dropdown above to see its ZIP areas.`
-              }
+                ? <span>Pick a <b>city</b>, <b>county</b>, or <b>state</b> above (or wait for location).</span>
+                : <span>Select a <b>{scope.scope}</b> from the dropdown above to see its ZIP areas.</span>}
             </div>
           )}
         </main>

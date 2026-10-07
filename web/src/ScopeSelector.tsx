@@ -41,7 +41,7 @@ export function ScopeSelector({ scope, regionName, onScopeChange, onPick, onPick
             const r = await api.regions(trimmed, "state", "", 1);
             if (r.length) {
               onPick(r[0]);
-              setQ("");
+              setOpen(false);  // close dropdown, DON'T clear q (avoids race with pre-fetch)
             }
           } catch {
             /* not a valid state — ignore */

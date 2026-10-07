@@ -183,9 +183,9 @@ export function MapView({ data, user, userZip, selectedZip, onSelectZip, onMapEr
     const map = mapRef.current;
     if (!map) return;
     const src = map.getSource("zctas") as maplibregl.GeoJSONSource | undefined;
-    if (!src) return;
+    const fullData = (data as FeatureCollection) ?? emptyFC();
+
     const push = () => {
-      const fullData = (data as FeatureCollection) ?? emptyFC();
       if (fullData.features.length) {
         const b = new maplibregl.LngLatBounds();
         for (const f of fullData.features) {
@@ -195,23 +195,39 @@ export function MapView({ data, user, userZip, selectedZip, onSelectZip, onMapEr
         map.fitBounds(b, { padding: 48, duration: 650, maxZoom: 11 });
       }
     };
-    // Filter to viewport-only on move; full data on initial load.
-    let initial = true;
-    const onData = () => {
-      const fullData = (data as FeatureCollection) ?? emptyFC();
-      if (initial) { push(); initial = false; }
+
+    const applyData = () => {
+      const currentSrc = map.getSource("zctas") as maplibregl.GeoJSONSource | undefined;
+      if (!currentSrc) return;  // still loading
+      if (!fullData.features.length) { currentSrc.setData(emptyFC()); return; }
       const bounds = map.getBounds();
       const visible = fullData.features.filter((f) => {
         const props = f.properties ?? ({} as ZipFeatureProps);
         const c = [props.lon, props.lat] as [number, number];
         return bounds.contains(c);
       });
-      src.setData({ type: "FeatureCollection", features: visible });
+      currentSrc.setData({ type: "FeatureCollection", features: visible });
     };
-    if (map.isStyleLoaded()) onData();
-    else map.once("load", () => { initial = true; onData(); });
-    map.on("moveend", onData);
-    return () => { map.off("moveend", onData); };
+
+    if (src) {
+      // Source exists (map loaded): apply data immediately
+      let initial = true;
+      const onData = () => {
+        if (initial) { push(); initial = false; }
+        applyData();
+      };
+      if (map.isStyleLoaded()) onData();
+      else map.once("load", () => { initial = true; onData(); });
+      map.on("moveend", onData);
+      return () => { map.off("moveend", onData); };
+    } else {
+      // Source not yet (map not loaded): wait for it.
+      const onLoad = () => {
+        applyData();
+      };
+      map.once("load", onLoad);
+      return () => { map.off("load", onLoad); };
+    }
   }, [data]);
 
   // ---- user marker ----
