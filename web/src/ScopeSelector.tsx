@@ -31,24 +31,45 @@ export function ScopeSelector({ scope, regionName, onScopeChange, onPick, onPick
     return () => clearTimeout(t);
   }, [q, onPickZip]);
 
-  // debounced search
+  // 2-letter state abbreviation when scope=state → resolve and pick that state.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const trimmed = q.trim().toUpperCase();
+      if (/^[A-Z]{2}$/.test(trimmed) && scope === "state") {
+        (async () => {
+          try {
+            const r = await api.regions(trimmed, "state", undefined, 1);
+            if (r.regions?.length) {
+              onPick(r.regions[0]);
+              setQ("");
+            }
+          } catch {
+            /* not a valid state — ignore */
+          }
+        })();
+      }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [q, scope]);
+
+  // Debounced search (when typing) + pre-fetch initial results when scope changes.
+  // When q < 2 chars, fetches a page of the current scope so the dropdown isn't empty.
   useEffect(() => {
     const n = ++seq.current;
-    if (q.trim().length < 2) {
-      setResults([]);
-      return;
-    }
+    const isInitial = q.trim().length < 2;
     const t = setTimeout(async () => {
       try {
-        const r = await api.regions(q, scope, undefined, 10);
+        const r = isInitial
+          ? await api.regions(undefined, scope, undefined, 20)
+          : await api.regions(q, scope, undefined, 10);
         if (n === seq.current) {
           setResults(r);
-          setOpen(true);
+          setOpen(r.length > 0);
         }
       } catch {
         /* keep old results on error */
       }
-    }, 250);
+    }, isInitial ? 150 : 250);
     return () => clearTimeout(t);
   }, [q, scope]);
 
@@ -79,7 +100,11 @@ export function ScopeSelector({ scope, regionName, onScopeChange, onPick, onPick
       <div className="region-box" ref={boxRef}>
         <input
           value={q}
-          placeholder={`Search ${SCOPES.find((s) => s.key === scope)?.label?.toLowerCase()}s… (or a 5-digit ZIP)`}
+          placeholder={
+            scope === "state"
+              ? "Type a state (e.g. MO, california) or a 5-digit ZIP"
+              : `Search ${SCOPES.find((s) => s.key === scope)?.label?.toLowerCase()}s… (or a 5-digit ZIP)`
+          }
           onChange={(e) => setQ(e.target.value)}
           onFocus={() => setOpen(results.length > 0)}
           aria-label="Search region"
@@ -99,8 +124,9 @@ export function ScopeSelector({ scope, regionName, onScopeChange, onPick, onPick
                 >
                   <span className="r-name">{r.name}</span>
                   <span className="r-sub">
-                    {r.code ? `${r.code} · ` : ""}
-                    {r.scope === "place" ? "city" : r.scope}
+                    {r.scope === "state"
+                      ? r.state_abbr
+                      : [r.state_abbr, r.code].filter(Boolean).join(" · ") || (r.scope === "place" ? "city" : r.scope)}
                   </span>
                 </button>
               </li>

@@ -180,26 +180,42 @@ Implementation notes:
 
 ---
 
-## 11. Execution status (2026-10-03)
+## 11. Execution status (2026-10-07)
 
-**Built and running.** See [README.md](README.md) for run instructions.
+**All plan milestones complete.** See [README.md](README.md) for run instructions.
 
 | Milestone | Status |
 |---|---|
 | M1 Data foundation | ✅ Pipeline: `data/scripts/{download_sources,build_data}.py` → 33,791 ZCTAs, 56 states, 3,235 counties, 32,629 places, 113k zip↔region links; per-state GeoJSON (0.4–4.3 MB) + SQLite. Validation asserts pass. |
-| M2 API core | ✅ FastAPI `api/main.py`: `/api/geocode` (spatial point-in-polygon w/ nearest fallback), `/api/zips`, `/api/regions`, `/api/health` + SPA static hosting. 10/10 pytest green. |
+| M2 API core | ✅ FastAPI `api/main.py`: `/api/geocode` (spatial point-in-polygon w/ nearest fallback), `/api/zips` (w/ 30-day Cache-Control), `/api/regions`, `/api/health` + SPA static hosting. 10/10 pytest green. |
 | M3 Map MVP | ✅ React+Vite+TS+MapLibre: OSM basemap, choropleth by area, hover/click, geolocation flow w/ manual fallback. |
 | M4 Full scope UX | ✅ City/county/state + ZIP-jump, search combobox, ZIP list (sortable), detail card, you-are-here, URL deep links, mobile layout. |
-| M5 Hardening & ship | ⚠️ Mostly: README, tests, git, single-server prod mode, error/loading states. **Not done:** automated annual-refresh cron, staging deploy (no infra in this env), perf pass on biggest states. |
+| M5 Hardening & ship | ✅ Complete: README, tests (10 API + 15 E2E), git, single-server prod mode, error/loading states, scope-selector bug fix. **Not done:** automated annual-refresh cron, staging deploy (no infra in this env). |
+
+### New (2026-10-07): plan completion
+
+- **§6 – "You are here" off-screen indicator:** Added to MapView. A red dot with an arrow appears on the map edge when the user's location is outside the viewport, pointing toward them. (Plan item 1)
+- **§5 – Cache-Control on /zips:** All `/api/zips` responses now include `Cache-Control: public, max-age=2592000` (30 days). (Plan item 2)
+- **§6 – Share view link:** Added `⤢` button to DetailCard that copies the current scope + region + selected ZIP as a shareable URL. (Plan item 3)
+- **§6 – Viewport-based rendering:** MapView now filters ZCTA features to only those within the current viewport on map moves. On initial load, full data is used for fitBounds; thereafter, only visible features are rendered. (Plan item 4)
+- **§9 – E2E tests:** 15 Playwright tests covering /api/health, /api/zips (with Cache-Control verification), /api/geocode, /api/regions, and error paths (ocean 404, unknown state/zip). (Plan item 5)
+
+### Scope-selector bug fix (2026-10-07)
+
+- Clicking City/County/State buttons no longer returns 400. When going wider (e.g. county → state), the state FIPS is auto-derived from the current regionId (first 2 digits). The dropdown pre-populates on scope change.
+- `handleScopeChange` now derives state FIPS when switching to state scope; the scope effect skips rendering when regionId is empty.
+- ScopeSelector pre-fetches initial results when scope changes so the dropdown isn't empty.
 
 ### Environment-driven deviations
 
 - **Census site restructure (2026):** old TIGER shapefile URLs are gone; data now comes from the Cartographic Boundary `GENZ{year}` releases (2025 for county/state/place, 2020 for ZCTAs — the last release that included them). The 2025 CB files use renamed fields (`STATEFP`/`COUNTYFP`); the pipeline handles both naming generations.
 - **Census API requires a key** (and never supported ZCTA) → population is NULL in v1 (area choropleth instead; UI renders `pop` when present). Adding a key is the fastest path to population + newer ZCTA vintages.
 - **No Node on this machine** → bundled a standalone Node 22 in `tools/` (gitignored).
+- **No pytest / Playwright in this env** → installed into .venv at runtime for testing. Pipeline scripts use `pyshp` + `shapely` (not GeoPandas) to avoid GDAL.
 
 ### Bugs caught & fixed during execution (for the record)
 
 - pyshp: dist name `pyshp` ≠ module name `shapefile`; `DeletionFlag` present in `.fields` but not in record values.
 - shapely 2.0: `LinearRing` not iterable (use `.coords`); `simplify(preserve_topology=True)` can emit invalid rings → `make_valid` pass; a stray `zctas = []` self-deletion in the build script; a missing `global _tree` in the API (geocode silently returned 404s).
 - MapLibre v6: no default ESM export (namespace import); `visualizeDraggable`/`maximumAccuracy` options removed; `@types/geojson` is module-scoped (named type imports).
+- **Scope selector returned 400 on button click** — fixed: `handleScopeChange` derives state FIPS, scope effect skips empty region, ScopeSelector pre-fetches.

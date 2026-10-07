@@ -32,6 +32,7 @@ export interface Region {
   id: string;
   name: string;
   state_fips: string;
+  state_abbr: string;  // 2-letter abbreviation (AL, MO, etc.)
   code: string | null;
 }
 

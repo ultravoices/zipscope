@@ -85,7 +85,7 @@ export default function App() {
 
   // load zips whenever the scope changes
   useEffect(() => {
-    if (!scope) return;
+    if (!scope || !scope.regionId) return;  // skip until a region is selected or derived
     let alive = true;
     setLoading(true);
     setError(null);
@@ -122,7 +122,21 @@ export default function App() {
     setSelectedZip(zip);
   };
   const handleScopeChange = (s: RegionScope) => {
-    setScope((cur) => (cur ? { ...cur, scope: s, regionId: "", regionName: "" } : null));
+    setScope((cur) => {
+      if (!cur) return null;
+      if (s === cur.scope) return null;
+
+      // When going wider (narrower scope → state), derive the state FIPS
+      // from the current regionId (first 2 digits of county/place FIPS).
+      // Going narrower or lateral (state → county, county ↔ place):
+      //   cannot reliably derive the child region, so clear (user must pick).
+      let newRegionId = "";
+      if (s === "state" && cur.regionId.length >= 2) {
+        newRegionId = cur.regionId.slice(0, 2);
+      }
+      // (narrower/lateral scopes cleared — user must pick from dropdown)
+      return { scope: s, regionId: newRegionId, regionName: "" };
+    });
   };
 
   return (
@@ -175,7 +189,7 @@ export default function App() {
         </main>
 
         <aside className="sidebar">
-          <DetailCard feature={selectedFeature} userZip={userZip} onClear={() => setSelectedZip(null)} />
+          <DetailCard feature={selectedFeature} userZip={userZip} onClear={() => setSelectedZip(null)} scope={scope} selectedZip={selectedZip} />
           <ZipList
             features={data?.features ?? []}
             selectedZip={selectedZip}

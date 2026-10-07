@@ -25,6 +25,21 @@ from shapely.geometry import Point, shape
 from shapely.strtree import STRtree
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+# State FIPS (2-digit) → 2-letter abbreviation (50 states + DC; territories excluded).
+_STATE_FIPS_TO_ABBR = {
+    "01": "AL", "02": "AK", "04": "AZ", "05": "AR", "06": "CA",
+    "08": "CO", "09": "CT", "10": "DE", "11": "DC", "12": "FL",
+    "13": "GA", "15": "HI", "16": "ID", "17": "IL", "18": "IN",
+    "19": "IA", "20": "KS", "21": "KY", "22": "LA", "23": "ME",
+    "24": "MD", "25": "MA", "26": "MI", "27": "MN", "28": "MS",
+    "29": "MO", "30": "MT", "31": "NE", "32": "NV", "33": "NH",
+    "34": "NJ", "35": "NM", "36": "NY", "37": "NC", "38": "ND",
+    "39": "OH", "40": "OK", "41": "OR", "42": "PA", "44": "RI",
+    "45": "SC", "46": "SD", "47": "TN", "48": "TX", "49": "UT",
+    "50": "VT", "51": "VA", "53": "WA", "54": "WV", "55": "WI", "56": "WY",
+}
+_STATE_ABBR_TO_FIPS = {v: k for k, v in _STATE_FIPS_TO_ABBR.items()}
 DATA = os.path.join(ROOT, "data", "out")
 DB_PATH = os.path.join(DATA, "zips.db")
 ZCTA_DIR = os.path.join(DATA, "zctas")
@@ -195,6 +210,32 @@ def _collect_zips(zips: list) -> list:
     return out
 
 
+# Cache-Control helper for /zips (data is annual, long-lived cache is safe)
+_ZIP_CACHE_SEC = 30 * 24 * 3600  # 30 days
+
+
+def _zip_json_response(*, scope: str, region: str, zips: int, **kw):
+    """Return a JSONResponse with a 30-day Cache-Control header."""
+    return JSONResponse(
+        {"type": "FeatureCollection", "features": [],
+         "meta": {"scope": scope, "region": region, "zips": zips}, **kw},
+        headers={"Cache-Control": f"public, max-age={_ZIP_CACHE_SEC}",
+                 "Vary": ""},
+    )
+
+
+def _resolve_state_region(region: str) -> str:
+    """Resolve state region: try FIPS first, then 2-letter abbreviation."""
+    fname = _state_files.get(region)
+    if fname:
+        return region  # already a valid FIPS
+    # Try 2-letter abbreviation (case-insensitive)
+    abbr = region.strip().upper()
+    if abbr in _STATE_ABBR_TO_FIPS:
+        return _STATE_ABBR_TO_FIPS[abbr]
+    return region  # return as-is (will 404)
+
+
 @app.get("/api/zips")
 def get_zips(
     scope: str = Query("state", pattern="^(state|county|place|zip)$"),
@@ -211,16 +252,17 @@ def get_zips(
             if not _zip_row(con, region):
                 raise HTTPException(404, f"unknown zip {region}")
             feats = _collect_zips([region])
-            return JSONResponse({"type": "FeatureCollection", "features": feats,
-                                 "meta": {"scope": scope, "region": region, "zips": len(feats)}})
+            return _zip_json_response(scope=scope, region=region, zips=len(feats),
+                                      features=feats)
 
         if scope == "state":
-            fname = _state_files.get(region)
+            resolved = _resolve_state_region(region)
+            fname = _state_files.get(resolved)
             if not fname:
                 raise HTTPException(404, f"unknown state {region}")
             feats = _load_state(fname).get("features", [])
-            return JSONResponse({"type": "FeatureCollection", "features": feats,
-                                 "meta": {"scope": scope, "region": region, "zips": len(feats)}})
+            return _zip_json_response(scope=scope, region=region, zips=len(feats),
+                                      features=feats)
 
         # county / place: resolve via zip_regions (many-to-many where applicable)
         rows = con.execute(
@@ -232,9 +274,8 @@ def get_zips(
         feats = _collect_zips(zips)
         if not feats:
             raise HTTPException(404, f"no zips in {scope} {region}")
-        return JSONResponse({"type": "FeatureCollection", "features": feats,
-                             "meta": {"scope": scope, "region": region,
-                                      "zips": len(feats), "matched": len(zips)}})
+        return _zip_json_response(scope=scope, region=region, zips=len(feats),
+                                  features=feats, matched=len(zips))
     finally:
         con.close()
 
@@ -269,7 +310,11 @@ def search_regions(
         sql = (f"SELECT scope, id, name, state_fips, code FROM regions "
                f"WHERE {' AND '.join(clauses)} ORDER BY name LIMIT ?")
         params.append(limit)
-        return {"regions": [dict(r) for r in con.execute(sql, params).fetchall()]}
+        regions = [dict(r) for r in con.execute(sql, params).fetchall()]
+        # Add state_abbr to each result (FIPS → 2-letter abbreviation).
+        for r in regions:
+            r["state_abbr"] = _STATE_FIPS_TO_ABBR.get(r["state_fips"], "")
+        return {"regions": regions}
     finally:
         con.close()
 

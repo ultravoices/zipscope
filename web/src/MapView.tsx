@@ -178,22 +178,36 @@ export function MapView({ data, user, userZip, selectedZip, onSelectZip, onMapEr
     };
   }, []);
 
-  // ---- data updates ----
+  // ---- data updates (viewport-based: only render visible features, plan item 4) ----
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
+    const src = map.getSource("zctas") as maplibregl.GeoJSONSource | undefined;
+    if (!src) return;
     const push = () => {
-      const src = map.getSource("zctas") as maplibregl.GeoJSONSource | undefined;
-      if (!src) return;
-      src.setData((data as FeatureCollection) ?? emptyFC());
-      if (data && data.features.length) {
+      const fullData = (data as FeatureCollection) ?? emptyFC();
+      if (fullData.features.length) {
         const b = new maplibregl.LngLatBounds();
-        for (const f of data.features) b.extend([f.properties.lon, f.properties.lat]);
+        for (const f of fullData.features) b.extend([f.properties.lon, f.properties.lat]);
         map.fitBounds(b, { padding: 48, duration: 650, maxZoom: 11 });
       }
     };
-    if (map.isStyleLoaded()) push();
-    else map.once("load", push);
+    // Filter to viewport-only on move; full data on initial load.
+    let initial = true;
+    const onData = () => {
+      const fullData = (data as FeatureCollection) ?? emptyFC();
+      if (initial) { push(); initial = false; }
+      const bounds = map.getBounds();
+      const visible = fullData.features.filter((f) => {
+        const c = [f.properties.lon, f.properties.lat] as [number, number];
+        return bounds.contains(c);
+      });
+      src.setData({ type: "FeatureCollection", features: visible });
+    };
+    if (map.isStyleLoaded()) onData();
+    else map.once("load", () => { initial = true; onData(); });
+    map.on("moveend", onData);
+    return () => { map.off("moveend", onData); };
   }, [data]);
 
   // ---- user marker ----
