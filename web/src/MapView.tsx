@@ -196,34 +196,46 @@ export function MapView({ data, user, userZip, selectedZip, onSelectZip, onMapEr
       }
     };
 
-    const applyData = () => {
+    // On scope change (data updates): render ALL features (don't filter), then fit map.
+    // On viewport moves: only render visible features (optimization for big states).
+    const setData = (features: GeoFeature[]) => {
       const currentSrc = map.getSource("zctas") as maplibregl.GeoJSONSource | undefined;
-      if (!currentSrc) return;  // still loading
-      if (!fullData.features.length) { currentSrc.setData(emptyFC()); return; }
+      if (!currentSrc) return;
+      if (!features.length) { currentSrc.setData(emptyFC()); return; }
+      currentSrc.setData({ type: "FeatureCollection", features });
+    };
+
+    // Scope change handler: always render all, never filter.
+    const onScopeChange = () => {
+      push();  // fitBounds to the new scope's features
+      setData(fullData.features as GeoFeature[]);
+    };
+
+    // Viewport move handler: filter to visible features only.
+    const onMoveEnd = () => {
       const bounds = map.getBounds();
       const visible = fullData.features.filter((f) => {
         const props = f.properties ?? ({} as ZipFeatureProps);
         const c = [props.lon, props.lat] as [number, number];
         return bounds.contains(c);
       });
-      currentSrc.setData({ type: "FeatureCollection", features: visible });
+      setData(visible as GeoFeature[]);
     };
 
     if (src) {
-      // Source exists (map loaded): apply data immediately
-      let initial = true;
-      const onData = () => {
-        if (initial) { push(); initial = false; }
-        applyData();
-      };
-      if (map.isStyleLoaded()) onData();
-      else map.once("load", () => { initial = true; onData(); });
-      map.on("moveend", onData);
-      return () => { map.off("moveend", onData); };
+      // Source exists (map already loaded): apply data immediately
+      if (data) {  // scope changed (has new data)
+        onScopeChange();
+      }
+      map.on("moveend", onMoveEnd);
+      return () => { map.off("moveend", onMoveEnd); };
     } else {
       // Source not yet (map not loaded): wait for it.
       const onLoad = () => {
-        applyData();
+        if (data) {
+          // Map loaded → sources exist → apply data immediately
+          onScopeChange();
+        }
       };
       map.once("load", onLoad);
       return () => { map.off("load", onLoad); };
