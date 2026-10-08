@@ -44,12 +44,11 @@ export function MapView({ data, user, userZip, selectedZip, onSelectZip, onMapEr
   // ---- init once ----
   useEffect(() => {
     if (!divRef.current || mapRef.current) return;
-    // Explicitly point MapLibre to its worker files (needed for production builds).
-    // The post-build plugin copies the worker to dist/maplibre-gl-worker.mjs.
+
     try {
-      maplibregl.setWorkerUrl("/maplibre-gl-worker.mjs");
+      maplibregl.setWorkerUrl("/static/worker/maplibre-gl-worker.mjs");
     } catch {
-      // In development, workers may work without explicit URL.
+      // fallback: let MapLibre find the worker on its own
     }
     const map = new maplibregl.Map({
       container: divRef.current,
