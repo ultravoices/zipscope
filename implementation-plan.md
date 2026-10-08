@@ -206,6 +206,12 @@ Implementation notes:
 - `handleScopeChange` now derives state FIPS when switching to state scope; the scope effect skips rendering when regionId is empty.
 - ScopeSelector pre-fetches initial results when scope changes so the dropdown isn't empty.
 
+### Deployment (2026-10-07)
+
+- **Render:** Deployed to Render (free Hobby tier) — `zipscope.onrender.com`. Single-server mode (FastAPI serves `/api/*` + `web/dist` at `/` with SPA fallback).
+- **Data on Render:** 77 MB of built data included in the git repo (lazy-loaded geometries keep startup memory at ~62 MB).
+- **Free tier trade-offs:** 15 min idle spin-down, ~30s cold start. Pro tier ($5/mo) provides always-on.
+
 ### Environment-driven deviations
 
 - **Census site restructure (2026):** old TIGER shapefile URLs are gone; data now comes from the Cartographic Boundary `GENZ{year}` releases (2025 for county/state/place, 2020 for ZCTAs — the last release that included them). The 2025 CB files use renamed fields (`STATEFP`/`COUNTYFP`); the pipeline handles both naming generations.
