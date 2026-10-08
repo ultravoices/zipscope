@@ -210,7 +210,7 @@ export function MapView({ data, user, userZip, selectedZip, onSelectZip, onMapEr
       const currentSrc = map.getSource("zctas") as maplibregl.GeoJSONSource | undefined;
       if (!currentSrc) { console.log('[map data] no source'); return; }
       if (!features.length) { console.log('[map data] 0 features, clearing'); currentSrc.setData(emptyFC()); return; }
-      console.log('[map data] setting', features.length, 'features to source');
+      console.log('[map data] setting', features.length, 'features to source. first feature:', JSON.stringify(features[0]).slice(0, 300));
       currentSrc.setData({ type: "FeatureCollection", features });
     };
 
