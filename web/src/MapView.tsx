@@ -192,8 +192,6 @@ export function MapView({ data, user, userZip, selectedZip, onSelectZip, onMapEr
     if (!map) { console.log('[map] no map ref'); return; }
     const src = map.getSource("zctas") as maplibregl.GeoJSONSource | undefined;
     const fullData = (data as FeatureCollection) ?? emptyFC();
-    console.log('[map data] scope changed, data type:', typeof data, 'features:', fullData.features?.length ?? 0);
-
     const push = () => {
       if (fullData.features.length) {
         const b = new maplibregl.LngLatBounds();
@@ -201,16 +199,14 @@ export function MapView({ data, user, userZip, selectedZip, onSelectZip, onMapEr
           const props = f.properties ?? ({} as ZipFeatureProps);
           b.extend([props.lon, props.lat]);
         }
-        map.fitBounds(b, { padding: 48, duration: 650, maxZoom: 11 });
-        console.log('[map data] fitBounds to', fullData.features.length, 'features');
+        map.fitBounds(b, { padding: 16, duration: 800, maxZoom: 13 });
       }
     };
 
     const setData = (features: GeoFeature[]) => {
       const currentSrc = map.getSource("zctas") as maplibregl.GeoJSONSource | undefined;
-      if (!currentSrc) { console.log('[map data] no source'); return; }
-      if (!features.length) { console.log('[map data] 0 features, clearing'); currentSrc.setData(emptyFC()); return; }
-      console.log('[map data] setting', features.length, 'features to source. first feature:', JSON.stringify(features[0]).slice(0, 300));
+      if (!currentSrc) return;
+      if (!features.length) { currentSrc.setData(emptyFC()); return; }
       currentSrc.setData({ type: "FeatureCollection", features });
     };
 
@@ -219,27 +215,12 @@ export function MapView({ data, user, userZip, selectedZip, onSelectZip, onMapEr
       setData(fullData.features as GeoFeature[]);
     };
 
-    const onMoveEnd = () => {
-      const bounds = map.getBounds();
-      const visible = fullData.features.filter((f) => {
-        const props = f.properties ?? ({} as ZipFeatureProps);
-        const c = [props.lon, props.lat] as [number, number];
-        return bounds.contains(c);
-      });
-      setData(visible as GeoFeature[]);
-    };
-
     if (src) {
-      console.log('[map data] source exists, data truthy:', !!data);
       if (data) {
         onScopeChange();
       }
-      map.on("moveend", onMoveEnd);
-      return () => { map.off("moveend", onMoveEnd); };
     } else {
-      console.log('[map data] no source, waiting for load');
       const onLoad = () => {
-        console.log('[map data] map loaded event, data:', data ? 'truthy' : 'null');
         if (data) {
           onScopeChange();
         }
