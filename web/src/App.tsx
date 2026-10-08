@@ -46,7 +46,6 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [selectedZip, setSelectedZip] = useState<string | null>(null);
   const [apiDown, setApiDown] = useState(false);
-  const [mapError, setMapError] = useState<string | null>(null);
 
   // restore shared state from URL
   useEffect(() => {
@@ -95,7 +94,6 @@ export default function App() {
       .then((fc) => {
         if (!alive) return;
         setData(fc);
-        setMapError(null);
       })
       .catch((e) => alive && setError(String(e)))
       .finally(() => alive && setLoading(false));
@@ -166,10 +164,9 @@ export default function App() {
           <MapView
             data={data}
             user={userZip ? userZip.centroid : null}
-            userZip={userZip?.zip ?? null}
             selectedZip={selectedZip}
             onSelectZip={setSelectedZip}
-            onMapError={(m) => setMapError(m)}
+
           />
           {apiDown && (
             <div className="banner">
@@ -178,7 +175,6 @@ export default function App() {
           )}
           {loading && <div className="banner banner-load">Loading ZIP areas…</div>}
           {error && <div className="banner banner-err">{error}</div>}
-          {mapError && <div className="banner banner-err banner-map">Map: {mapError}</div>}
           {data && !loading && (
             <div className="zip-count">{(data.meta?.zips ?? data.features.length).toLocaleString()} ZIP areas</div>
           )}

@@ -451,12 +451,6 @@ if os.path.isdir(dist):
     from fastapi.staticfiles import StaticFiles
     from fastapi.responses import FileResponse
 
-    # Serve maplibre-gl workers so single-server mode doesn't catch them.
-    # MapLibre requests /static/worker/maplibre-gl-worker.mjs.
-    worker_dir = os.path.join(dist, "static", "worker")
-    if os.path.isdir(worker_dir):
-        app.mount("/static/", StaticFiles(directory=worker_dir), name="workers")
-
     class SPAStatic(StaticFiles):
         async def get_response(self, path, scope):
             try:
