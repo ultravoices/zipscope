@@ -4,13 +4,14 @@ import { existsSync, mkdirSync, copyFileSync } from "fs";
 import { join } from "path";
 import type { Plugin } from "vite";
 
-// Vite plugin: copy maplibre-gl worker files to build output.
+// Simple Vite plugin: copy worker files from public/ to dist/ during build.
+// Works whether build runs from web/ or repo root.
 const maplibreWorkers: Plugin = {
   name: "maplibre-workers",
   apply: "build" as const,
   closeBundle() {
     const tryCopy = (base: string) => {
-      const nm = join(base, "node_modules", "maplibre-gl", "dist");
+      const nm = join(base, "public", "static", "worker");
       if (!existsSync(nm)) return;
       const worker = join(nm, "maplibre-gl-worker.mjs");
       const shared = join(nm, "maplibre-gl-shared.mjs");
@@ -20,9 +21,9 @@ const maplibreWorkers: Plugin = {
       if (existsSync(shared)) copyFileSync(shared, join(out, "maplibre-gl-shared.mjs"));
     };
 
-    // Try cwd (works when build runs from web/)
+    // Check current project root (where build runs from)
     tryCopy(process.cwd());
-    // Also try cwd/../ (if build runs from repo root, packages at cwd/web/node_modules/)
+    // Check parent directory (if build runs from web/, check repo root)
     const parent = join(process.cwd(), "..");
     if (parent !== process.cwd()) {
       tryCopy(parent);
