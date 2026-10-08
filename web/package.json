@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "postbuild": "mkdir -p dist/static/worker && cp node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs dist/static/worker/"
+    "postbuild": "mkdir -p dist/static/worker && cp node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs dist/static/worker/ && cp node_modules/maplibre-gl/dist/maplibre-gl-shared.mjs dist/static/worker/"
   },
   "dependencies": {
     "maplibre-gl": "^6.12.0",
