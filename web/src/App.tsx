@@ -94,6 +94,7 @@ export default function App() {
       .zips(scope.scope, scope.regionId)
       .then((fc) => {
         if (!alive) return;
+        console.log('[app] data received:', fc.features?.length, 'features for scope', fc.meta?.scope, fc.meta?.region);
         setData(fc);
         setMapError(null);
       })

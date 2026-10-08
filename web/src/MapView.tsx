@@ -187,6 +187,7 @@ export function MapView({ data, user, userZip, selectedZip, onSelectZip, onMapEr
 
   // ---- data updates (viewport-based: only render visible features, plan item 4) ----
   useEffect(() => {
+    console.log('[map] received data:', typeof data, 'features:', data?.features?.length ?? 0);
     const map = mapRef.current;
     if (!map) { console.log('[map] no map ref'); return; }
     const src = map.getSource("zctas") as maplibregl.GeoJSONSource | undefined;
