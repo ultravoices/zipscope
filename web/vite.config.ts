@@ -16,4 +16,9 @@ export default defineConfig({
     // that the dep optimizer mishandles; serve it un-optimized in dev.
     exclude: ["maplibre-gl"],
   },
+  build: {
+    commonjsOptions: {
+      include: [/maplibre-gl/, /node_modules/],
+    },
+  },
 });

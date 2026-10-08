@@ -44,6 +44,10 @@ export function MapView({ data, user, userZip, selectedZip, onSelectZip, onMapEr
   // ---- init once ----
   useEffect(() => {
     if (!divRef.current || mapRef.current) return;
+    // Explicitly point MapLibre to its worker files (needed for production builds)
+    maplibregl.setWorkerUrl(
+      new URL("maplibre-gl/dist/maplibre-gl-worker.mjs", import.meta.url).href,
+    );
     const map = new maplibregl.Map({
       container: divRef.current,
       style: BASE_STYLE,
