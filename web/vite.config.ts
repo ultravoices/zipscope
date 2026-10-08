@@ -1,10 +1,37 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { existsSync, mkdirSync, copyFileSync } from "fs";
+import { join } from "path";
+import type { Plugin } from "vite";
 
-// Dev server proxies /api to the FastAPI backend so the SPA works on one origin.
-// In production the FastAPI app serves web/dist at /, so the same relative paths work.
+// Vite plugin: copy maplibre-gl worker files to build output.
+const maplibreWorkers: Plugin = {
+  name: "maplibre-workers",
+  apply: "build" as const,
+  closeBundle() {
+    const tryCopy = (base: string) => {
+      const nm = join(base, "node_modules", "maplibre-gl", "dist");
+      if (!existsSync(nm)) return;
+      const worker = join(nm, "maplibre-gl-worker.mjs");
+      const shared = join(nm, "maplibre-gl-shared.mjs");
+      const out = join(base, "dist", "static", "worker");
+      mkdirSync(out, { recursive: true });
+      if (existsSync(worker)) copyFileSync(worker, join(out, "maplibre-gl-worker.mjs"));
+      if (existsSync(shared)) copyFileSync(shared, join(out, "maplibre-gl-shared.mjs"));
+    };
+
+    // Try cwd (works when build runs from web/)
+    tryCopy(process.cwd());
+    // Also try cwd/../ (if build runs from repo root, packages at cwd/web/node_modules/)
+    const parent = join(process.cwd(), "..");
+    if (parent !== process.cwd()) {
+      tryCopy(parent);
+    }
+  },
+};
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), maplibreWorkers],
   server: {
     port: 5173,
     proxy: {
@@ -12,8 +39,6 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    // maplibre-gl v6 ships plain ESM with a separately-imported worker module
-    // that the dep optimizer mishandles; serve it un-optimized in dev.
     exclude: ["maplibre-gl"],
   },
   build: {
