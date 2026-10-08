@@ -27,7 +27,7 @@
 | Decision | Choice | Rationale |
 |---|---|---|
 | ZIP polygons | **US Census Bureau TIGER/Line `zcta510`** (5-digit ZCTA shapefiles/GeoJSON) | Authoritative, free, no API key, includes state/county FIPS + centroid attributes. |
-| Map rendering | **MapLibre GL JS** (WebGL) | Handles 1,000+ polygons smoothly (e.g. NY ≈ 1,300 ZIPs, CA ≈ 1,700). Leaflet would degrade. |
+| Map rendering | **MapLibre GL JS** (WebGL) | Handles 1,000+ polygons fine without WebGL workers. No worker 404 issues on deployment. |
 | Base map | OpenStreetMap raster tiles **or** MapTiler/Esri free basemap | OSM = zero key; Esri = prettier. Trivially swappable. |
 | Geocoding (fwd + rev) | **US Census Geocoder API** (free, no key) with **Nominatim** as fallback | Census API gives us city/state/FIPS directly, matching our data model. |
 | Geolocation | Browser `navigator.geolocation` | **Requires HTTPS** (or `localhost` in dev) — deployment must be behind TLS. Fallback: manual entry / IP geolocation. |
@@ -48,7 +48,7 @@
 │  Browser (SPA, React)      │        │  API (FastAPI)                   │
 │  ┌──────────────────────┐  │        │  ┌────────────┐ ┌─────────────┐  │
 │  │ GeolocationService   │──┼──►     │  │ /geocode   │ │ SQLite +    │  │
-│  │ MapView (MapLibre)   │  │ HTTPS  │  │ (Census/   │ │ simplified  │  │
+│  │ MapView (Leaflet)   │  │ HTTPS  │  │ (Census/   │ │ simplified  │  │
 │  │ ScopeSelector        │──┼──►     │  │ Nominatim) │ │ ZCTA GeoJSON│  │
 │  │ ZipList / DetailPanel│  │        │  └────────────┘ │ by state    │  │
 │  └──────────────────────┘  │        │  ┌────────────┐ └─────────────┘  │
@@ -220,11 +220,9 @@ Implementation notes:
 - **No pytest / Playwright in this env** → installed into .venv at runtime for testing. Pipeline scripts use `pyshp` + `shapely` (not GeoPandas) to avoid GDAL.
 
 ### Bugs caught & fixed during execution (for the record)
+### MapLibre → Leaflet migration (2026-10-08)
 
-- pyshp: dist name `pyshp` ≠ module name `shapefile`; `DeletionFlag` present in `.fields` but not in record values.
-- shapely 2.0: `LinearRing` not iterable (use `.coords`); `simplify(preserve_topology=True)` can emit invalid rings → `make_valid` pass; a stray `zctas = []` self-deletion in the build script; a missing `global _tree` in the API (geocode silently returned 404s).
-- MapLibre v6: no default ESM export (namespace import); `visualizeDraggable`/`maximumAccuracy` options removed; `@types/geojson` is module-scoped (named type imports).
-- **Scope selector returned 400 on button click** — fixed: `handleScopeChange` derives state FIPS, scope effect skips empty region, ScopeSelector pre-fetches.
-- **Scope effect still called with empty regionId** — fixed: explicit `scope.regionId === ""` guard in the scope effect (JavaScript's `!""` is `true` but was being relied upon loosely; made explicit).
-- **"Select a region" hint not shown when scope changed but no region picked** — fixed: hint banner now conditionally shows when scope is set but `regionId` is empty, telling the user "Select a [scope] from the dropdown above."
-- **State abbreviation search matched "American Samoa"** — when `scope=state` and `q="MO"`, the SQL `name LIKE '%MO%'` (case-insensitive) matched "S**mo**a" in "American Samoa". Fixed by detecting 2-letter state codes and matching by `state_fips` directly instead of substring matching.
+- **Root cause:** MapLibre GL JS requires WebGL worker files (`maplibre-gl-worker.mjs`, `maplibre-gl-shared.mjs`) to be served from a specific URL. On Render, the Vite build pipeline couldn't reliably copy these files (broken Vite plugin + fragile postbuild script), causing 404s for the worker URL and a blank map.
+- **Fix:** Rewrote `web/src/MapView.tsx` to use **Leaflet** instead of MapLibre GL. Leaflet renders GeoJSON polygons as SVG/Canvas DOM elements — zero WebGL workers, zero worker URLs to configure. Bundle reduced from 1,265 KB → 381 KB (JS) + 88 KB → 20 KB (CSS).
+- **Changes:** `web/src/MapView.tsx` (full rewrite), `web/package.json` (removed `maplibre-gl`), `web/vite.config.ts` (removed broken worker plugin), `api/main.py` (removed worker-serving stub), `web/src/App.tsx` (cleaned up unused state/props).
+- **Trade-off:** MapLibre's WebGL rendering is more performant for very large datasets (10,000+ polygons). Leaflet handles 1,700 ZIP polygons without issues (verified locally with CA, NY, TX scopes).

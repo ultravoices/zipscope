@@ -19,10 +19,10 @@ Companion docs: [implementation-plan.md](implementation-plan.md) (design rationa
 |---|---|
 | Data pipeline (M1) | ✅ 33,791 ZCTAs · 56 states · 3,235 counties · 32,629 places · 113,146 zip↔region links. Per-state GeoJSON (0.4–4.3 MB, 62.6 MB total) + `zips.db` (14.7 MB). Validation asserts pass. |
 | API (M2) | ✅ FastAPI — `/api/geocode`, `/api/zips`, `/api/regions`, `/api/health` + SPA hosting. **10/10 tests green** (`pytest api/tests`). |
-| Web (M3/M4) | ✅ React 19 + Vite 8 + MapLibre GL v6: OSM basemap, area choropleth, hover/click/tooltip, scope search, ZIP list, detail card, you-are-here marker, URL deep links, mobile layout. |
+| Web (M3/M4) | ✅ React 19 + Vite 8 + Leaflet: OSM basemap, area choropleth, hover/click/tooltip, scope search, ZIP list, detail card, you-are-here marker, URL deep links, mobile layout. |
 | Hardening (M5) | ✅ Complete: README, 10/10 API tests, git history, single-server prod mode, loading/error states, defensive map rendering. Deployed to Render. |
 
-**Latest fix (2026-10-07): MapLibre GL v6 workers + render pipeline.** The app is fully deployed to Render at [zipscope.onrender.com](https://zipscope.onrender.com). All plan milestones M1–M5 complete. See implementation-plan.md §11 for full execution status.
+**Leaflet migration (2026-10-08): Replaced MapLibre GL with Leaflet (no more worker 404 issues).** The app is fully deployed to Render at [zipscope.onrender.com](https://zipscope.onrender.com). All plan milestones M1–M5 complete. See implementation-plan.md §11 for full execution status.
 
 ### Running now (this machine)
 
@@ -68,7 +68,7 @@ Open <http://localhost:5173>. Allow location, or search any city / county / stat
 Census CB files ──► build_data.py ──► data/out (per-state GeoJSON + zips.db)
                                               │
 Browser (React SPA) ◄── /api/* ──► FastAPI (FastAPI)
-  MapView (MapLibre GL)                 point-in-polygon geocode,
+  MapView (Leaflet)                 point-in-polygon geocode,
   ScopeSelector                         per-state lazy cache,
   ZipList / DetailCard                  SQLite lookup + STRtree
   useGeolocation
@@ -88,7 +88,7 @@ data/
 api/
   main.py               FastAPI: /api/geocode, /api/zips, /api/regions, /api/health + SPA hosting
   tests/test_api.py     10 endpoint tests (incl. multi-county ZIP, ocean 404, DC=11)
-web/                    Vite 8 + React 19 + TS + MapLibre v6 (src/MapView, App, api, ScopeSelector, ZipList, DetailCard, useGeolocation, style.css)
+web/                    Vite 8 + React 19 + TS + Leaflet
 tools/node              bundled Node 22 (gitignored)
 ```
 
@@ -126,11 +126,11 @@ CORS is open for the dev origins; per-state GeoJSON is lazily loaded into an in-
 
 - **Population is NULL.** The 2026 Census API redirects keyless clients to a "Missing Key" page and never supported ZCTA geography; no key-free per-ZCTA population source existed in this environment. The UI renders population *when present* and uses an **area choropleth** meanwhile. Adding a Census API key is the fastest path to population + newer ZCTA vintages.
 - **ZCTA vintage is 2020** — the 2025 CB release dropped ZCTAs; 2020 is the last release that included them. (Old TIGER shapefile URLs 404; the pipeline pins the Cartographic Boundary `GENZ{year}` releases and handles both 2020 (`STATE`/`COUNTY`) and 2025 (`STATEFP`/`COUNTYFP`) field generations.)
-- **GeoJSON, not TopoJSON**, in `data/out` (simpler end-to-end; per-state files 0.4–4.3 MB — MapLibre handles 1,700+ polygons fine).
+- **GeoJSON, not TopoJSON**, in `data/out` (simpler end-to-end; per-state files 0.4–4.3 MB Leaflet handles 1,700+ polygons fine).
 - **No boundary clipping** for multi-county ZIPs (e.g. 63101 renders whole, listed under all counties it touches). v1.1 backlog.
 - **pyshp + shapely** instead of GeoPandas (Python 3.9, avoids the GDAL dependency).
 - **~24 ZCTAs** have no assigned state (territory/edge cases) — below the 1% validation threshold, in the `?` bucket.
-- **No Node on this machine** → standalone Node 22 in `tools/` (gitignored); `VITE` + `rolldown` template, `optimizeDeps.exclude: ["maplibre-gl"]` (the dep-optimizer chokes on its worker module).
+- **No Node on this machine** → standalone Node 22 in `tools/` (gitignored); `VITE` + `rolldown` template, 
 
 ---
 
@@ -140,7 +140,7 @@ CORS is open for the dev origins; per-state GeoJSON is lazily loaded into an in-
 - **Geolocation in the in-app browser** may be simulated or denied — the manual search path (city/county/state/ZIP) is fully functional without it.
 - **ZCTAs are 1:500k** — coarse/blocky at city zoom; that's the best available key-free vintage.
 - **Census.gov soft-404s** (HTTP 200 + "Page not found" HTML) — `download_sources.py` sanity-checks file sizes; re-run it after each annual CB release.
-- **MapLibre GL workers:** The app uses MapLibre GL JS v6 with explicit `setWorkerUrl()` pointing to `maplibre-gl-worker.mjs` and `maplibre-gl-shared.mjs` (both required). In production, the API's single-server mode serves these from `/static/worker/` before the SPA fallback. In development, `public/static/worker/` symlinks the node_modules files.
+- **Leaflet has no worker files.** 
 - **Render free tier (15 min idle):** After 15 minutes of no traffic, the service spins down. The first request after idle triggers a ~30-second cold start. Subsequent requests are normal speed. Upgrade to $5/mo Pro for always-on.
 - **Lazy-loaded geometries:** The API starts at ~62 MB (down from 512+ MB). State GeoJSON files (~0.4–4.3 MB each) load on first geocode for that state. First request to a new state may take 3–5 seconds.
 - **Scope selector UX:** Clicking City/County/State tabs clears the region (you must pick a specific region from the dropdown). A hint banner appears: "Select a [City/County/State] from the dropdown above to see its ZIP areas."
